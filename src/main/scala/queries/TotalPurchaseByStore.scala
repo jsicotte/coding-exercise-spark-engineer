@@ -4,13 +4,16 @@ import org.apache.spark.sql.SparkSession
 
 import java.time.Instant
 
+/** Total purchases by date for the top 10 stores.
+ *
+ * @param startInstant the beginning of the date window
+ * @param spark
+ */
 class TotalPurchaseByStore(startInstant: Instant, spark: SparkSession) extends BaseQuery(startInstant, spark) {
-  // In some cases a store_number or address can identify a store. There are also instances
-  // where both of these fields are null but there is a store_phone.
-  // I have also noticed garbage values in store_city and store_state, so all columns are suspect.
-  // There does not seem a way to use store_phone to fill in missing data.
+  // In some cases a store_number or address can identify a store. There are also instances where both of these fields
+  // are null but there is a store_phone. I have also noticed garbage values in store_city and store_state, so all
+  // columns are suspect.
 
-  // total dollar amount per store by date
   val dataFrame = spark.sql(s"""
     with filtered_stores as (
         select COALESCE(store_address, store_number, store_phone) as store_id, store_name, RECEIPT_TOTAL, RECEIPT_PURCHASE_DATE

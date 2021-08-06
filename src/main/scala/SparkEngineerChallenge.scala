@@ -1,4 +1,4 @@
-import org.apache.spark.sql.functions.{col, to_timestamp, coalesce}
+import org.apache.spark.sql.functions.{coalesce, col, isnull, not, to_timestamp}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import queries.{CategoryPopularity, DeviceByYear, TotalPurchaseByStore}
 import scopt.OParser
@@ -17,6 +17,11 @@ object SparkEngineerChallenge {
     }
   }
 
+  /** Convert the RECEIPT_PURCHASE_DATE column to a timestamp type
+   *
+   * @param df DataFrame generated from rewards_receipts_lat_v3.csv
+   * @return
+   */
   def withReceiptTimestamp(df: DataFrame): DataFrame = {
     df.withColumn(
       "RECEIPT_PURCHASE_DATE",
@@ -28,6 +33,12 @@ object SparkEngineerChallenge {
     df.withColumn(
       "store_id",
       coalesce(col("store_address"),col("store_number"),col("store_phone"))
+    )
+  }
+
+  def withoutNullIdColumns(df: DataFrame): DataFrame = {
+    df.filter(
+      not(isnull(col("store_address")).and(isnull(col("store_address"))).and(isnull(col("store_phone"))))
     )
   }
 
@@ -51,6 +62,11 @@ object SparkEngineerChallenge {
 
     receipts.createOrReplaceTempView("receipts")
     items.createOrReplaceTempView("items")
+
+    receipts
+      .transform(withoutNullIdColumns)
+      .transform(withUniqueId)
+      .createOrReplaceTempView("receipts_cleaned")
 
     val startInstant = ZonedDateTime.now(ZoneOffset.UTC).minusMonths(numMonths).toInstant()
 

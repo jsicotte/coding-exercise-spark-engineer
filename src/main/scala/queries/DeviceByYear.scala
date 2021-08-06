@@ -5,6 +5,11 @@ import org.apache.spark.sql.functions.{col, lit, regexp_replace, year}
 
 import java.time.Instant
 
+/** Report that generates device popularity.
+ *
+ * @param startInstant the beginning of the date window
+ * @param spark
+ */
 class DeviceByYear(startInstant: Instant, spark: SparkSession) extends BaseQuery(startInstant, spark) {
   val dataFrame = spark.sql("select distinct RECEIPT_PURCHASE_DATE, CONSUMER_USER_AGENT from receipts")
     .filter(col("RECEIPT_PURCHASE_DATE" ).gt(lit(startTimestamp)))
