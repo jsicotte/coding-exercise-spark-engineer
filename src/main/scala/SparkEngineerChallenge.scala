@@ -1,4 +1,4 @@
-import org.apache.spark.sql.functions.{col, to_timestamp}
+import org.apache.spark.sql.functions.{col, to_timestamp, coalesce}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import queries.{CategoryPopularity, DeviceByYear, TotalPurchaseByStore}
 import scopt.OParser
@@ -21,6 +21,13 @@ object SparkEngineerChallenge {
     df.withColumn(
       "RECEIPT_PURCHASE_DATE",
       to_timestamp(col("RECEIPT_PURCHASE_DATE"), "yyyy-MM-dd HH:mm:ss.SSS")
+    )
+  }
+
+  def withUniqueId(df: DataFrame): DataFrame = {
+    df.withColumn(
+      "store_id",
+      coalesce(col("store_address"),col("store_number"),col("store_phone"))
     )
   }
 

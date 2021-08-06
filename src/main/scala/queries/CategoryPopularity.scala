@@ -4,12 +4,9 @@ import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions.{col, element_at, rank}
 import org.apache.spark.sql.{SparkSession, functions}
 
-import java.time.format.DateTimeFormatter
-import java.time.{Instant, ZoneId, ZoneOffset}
+import java.time.Instant
 
-class CategoryPopularity(var startInstant: Instant, var spark: SparkSession) {
-  val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME.withZone(ZoneId.from(ZoneOffset.UTC))
-  val startTimestamp = formatter.format(startInstant)
+class CategoryPopularity(startInstant: Instant, spark: SparkSession) extends BaseQuery(startInstant, spark) {
   val windowSpec = Window.partitionBy("store_id", "purchase_date").orderBy(col("count").desc)
   val dataFrame = spark.sql(s"""
         with filtered_receipts as (

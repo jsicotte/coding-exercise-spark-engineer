@@ -2,13 +2,9 @@ package queries
 
 import org.apache.spark.sql.SparkSession
 
-import java.time.format.DateTimeFormatter
-import java.time.{Instant, ZoneId, ZoneOffset}
+import java.time.Instant
 
-class TotalPurchaseByStore(var startInstant: Instant, var spark: SparkSession) {
-  val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME.withZone(ZoneId.from(ZoneOffset.UTC))
-  val startTimestamp = formatter.format(startInstant)
-
+class TotalPurchaseByStore(startInstant: Instant, spark: SparkSession) extends BaseQuery(startInstant, spark) {
   // In some cases a store_number or address can identify a store. There are also instances
   // where both of these fields are null but there is a store_phone.
   // I have also noticed garbage values in store_city and store_state, so all columns are suspect.
