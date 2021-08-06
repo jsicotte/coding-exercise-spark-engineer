@@ -1,9 +1,13 @@
 package queries
 
-import org.apache.spark.sql.{DataFrame, SparkSession}
-import java.util.Date
+import org.apache.spark.sql.SparkSession
 
-class TotalPurchaseByStore(var startDate: Date, var spark: SparkSession) {
+import java.time.format.DateTimeFormatter
+import java.time.{Instant, ZoneId, ZoneOffset}
+
+class TotalPurchaseByStore(var startInstant: Instant, var spark: SparkSession) {
+  val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME.withZone(ZoneId.from(ZoneOffset.UTC))
+  val startTimestamp = formatter.format(startInstant)
 
   // In some cases a store_number or address can identify a store. There are also instances
   // where both of these fields are null but there is a store_phone.
@@ -11,11 +15,12 @@ class TotalPurchaseByStore(var startDate: Date, var spark: SparkSession) {
   // There does not seem a way to use store_phone to fill in missing data.
 
   // total dollar amount per store by date
-  val dataFrame = spark.sql("""
+  val dataFrame = spark.sql(s"""
     with filtered_stores as (
         select COALESCE(store_address, store_number, store_phone) as store_id, store_name, RECEIPT_TOTAL, RECEIPT_PURCHASE_DATE
         from receipts as r
         where not (store_address is null and store_number is null and store_phone is null)
+        and RECEIPT_PURCHASE_DATE >= '${startTimestamp}'
     ),
     sums as (
         select store_id, store_name, sum(RECEIPT_TOTAL) as total from filtered_stores group by store_id, store_name

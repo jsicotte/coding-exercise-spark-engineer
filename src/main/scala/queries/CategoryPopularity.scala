@@ -4,15 +4,20 @@ import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.{SparkSession, functions}
 import org.apache.spark.sql.functions.{col, element_at, rank}
 
+import java.time.{Instant, ZoneId, ZoneOffset}
+import java.time.format.DateTimeFormatter
 import java.util.Date
 
-class CategoryPopularity(var startDate: Date, var spark: SparkSession) {
+class CategoryPopularity(var startInstant: Instant, var spark: SparkSession) {
+  val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME.withZone(ZoneId.from(ZoneOffset.UTC))
+  val startTimestamp = formatter.format(startInstant)
   val windowSpec = Window.partitionBy("store_id", "purchase_date").orderBy(col("count").desc)
-  val dataFrame = spark.sql("""
+  val dataFrame = spark.sql(s"""
         with filtered_receipts as (
             select COALESCE(store_address, store_number, store_phone) as store_id,RECEIPT_ID, store_name, RECEIPT_TOTAL, date(RECEIPT_PURCHASE_DATE) as purchase_date
             from receipts as r
             where not (store_address is null and store_number is null and store_phone is null)
+            and RECEIPT_PURCHASE_DATE >= '${startTimestamp}'
         )
         select * from filtered_receipts r
         join items i on r.RECEIPT_ID = i.REWARDS_RECEIPT_ID

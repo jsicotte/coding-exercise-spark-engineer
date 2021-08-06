@@ -1,11 +1,11 @@
-import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.functions.{col, to_timestamp}
+import org.apache.spark.sql.{DataFrame, SparkSession}
 import queries.{CategoryPopularity, DeviceByYear, TotalPurchaseByStore}
 import scopt.OParser
 
-import java.util.Date
+import java.time.{ZoneOffset, ZonedDateTime}
 
-object SimpleApp {
+object SparkEngineerChallenge {
   def createWriter(outputFormat: String, filename: String) = {
     if (outputFormat == "json") {
       (dataFrame: DataFrame) => dataFrame.write.json(filename)
@@ -16,7 +16,7 @@ object SimpleApp {
     }
   }
 
-  def runReports(local: Boolean, outputFormat: String, report: String): Unit = {
+  def runReports(local: Boolean, outputFormat: String, report: String, numMonths: Int): Unit = {
     val spark = if (local) {
       SparkSession.builder.master("local[4]").appName("Spark Challenge").getOrCreate()
     } else {
@@ -37,18 +37,20 @@ object SimpleApp {
     receipts.createOrReplaceTempView("receipts")
     items.createOrReplaceTempView("items")
 
+    val startInstant = ZonedDateTime.now(ZoneOffset.UTC).minusMonths(numMonths).toInstant()
+
     if (report == TotalPurchaseByStore.fileName) {
-      val totalByStore = new TotalPurchaseByStore(new Date(), spark)
+      val totalByStore = new TotalPurchaseByStore(startInstant, spark)
       val writer = createWriter(outputFormat, TotalPurchaseByStore.fileName)
       writer(totalByStore.dataFrame)
 
     } else if (report == CategoryPopularity.fileName) {
-      val categoryPopularity = new CategoryPopularity(new Date(), spark)
+      val categoryPopularity = new CategoryPopularity(startInstant, spark)
       val writer = createWriter(outputFormat, CategoryPopularity.fileName)
       writer(categoryPopularity.dataFrame)
 
     } else if (report == DeviceByYear.fileName) {
-      val deviceByYear = new DeviceByYear(new Date(), spark)
+      val deviceByYear = new DeviceByYear(startInstant, spark)
       val writer = createWriter(outputFormat, DeviceByYear.fileName)
       writer(deviceByYear.dataFrame)
 
@@ -69,13 +71,16 @@ object SimpleApp {
           .text("format of the output: csv, json, or parquet"),
         opt[String]('r', "report")
           .action((x, c) => c.copy(report = x))
-          .text("which report to run: category_popularity_by_store, device_by_year, total_purchase_by_store")
+          .text("which report to run: category_popularity_by_store, device_by_year, total_purchase_by_store"),
+        opt[Int]('n', "num-months")
+          .action((x, c) => c.copy(numMonths = x))
+          .text("calculate based on n-many months in the past")
       )
     }
 
     OParser.parse(parser, args, Config()) match {
       case Some(config) =>
-        runReports(config.local, config.outputFormat, config.report)
+        runReports(config.local, config.outputFormat, config.report, config.numMonths)
       case _ =>
     }
   }
@@ -84,4 +89,6 @@ object SimpleApp {
 case class Config(
                    local: Boolean = true,
                    outputFormat: String = "json",
-                   report: String = "total_purchase_by_store")
+                   report: String = "total_purchase_by_store",
+                   numMonths: Int = 12
+                 )
