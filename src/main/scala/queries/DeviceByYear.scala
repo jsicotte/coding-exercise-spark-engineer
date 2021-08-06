@@ -5,7 +5,6 @@ import org.apache.spark.sql.functions.{col, lit, regexp_replace, year}
 
 import java.time.{Instant, ZoneId, ZoneOffset}
 import java.time.format.DateTimeFormatter
-import java.util.Date
 
 class DeviceByYear(var startInstant: Instant, var spark: SparkSession) {
   val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME.withZone(ZoneId.from(ZoneOffset.UTC))

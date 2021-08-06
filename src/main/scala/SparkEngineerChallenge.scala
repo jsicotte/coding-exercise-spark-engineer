@@ -6,6 +6,7 @@ import scopt.OParser
 import java.time.{ZoneOffset, ZonedDateTime}
 
 object SparkEngineerChallenge {
+
   def createWriter(outputFormat: String, filename: String) = {
     if (outputFormat == "json") {
       (dataFrame: DataFrame) => dataFrame.write.json(filename)
@@ -14,6 +15,13 @@ object SparkEngineerChallenge {
     } else {
       (dataFrame: DataFrame) => dataFrame.write.parquet(filename)
     }
+  }
+
+  def withReceiptTimestamp(df: DataFrame): DataFrame = {
+    df.withColumn(
+      "RECEIPT_PURCHASE_DATE",
+      to_timestamp(col("RECEIPT_PURCHASE_DATE"), "yyyy-MM-dd HH:mm:ss.SSS")
+    )
   }
 
   def runReports(local: Boolean, outputFormat: String, report: String, numMonths: Int): Unit = {
@@ -27,7 +35,7 @@ object SparkEngineerChallenge {
       .option("header", "true")
       .option("inferschema", "true")
       .csv("rewards_receipts_lat_v3.csv")
-      .withColumn("RECEIPT_PURCHASE_DATE", to_timestamp(col("RECEIPT_PURCHASE_DATE"), "yyyy-MM-dd HH:mm:ss.SSS"))
+      .transform(withReceiptTimestamp)
 
     val items = spark.read
       .option("header", "true")
@@ -53,8 +61,8 @@ object SparkEngineerChallenge {
       val deviceByYear = new DeviceByYear(startInstant, spark)
       val writer = createWriter(outputFormat, DeviceByYear.fileName)
       writer(deviceByYear.dataFrame)
-
     }
+
   }
 
   def main(args: Array[String]) {
@@ -87,8 +95,8 @@ object SparkEngineerChallenge {
 }
 
 case class Config(
-                   local: Boolean = true,
-                   outputFormat: String = "json",
-                   report: String = "total_purchase_by_store",
-                   numMonths: Int = 12
-                 )
+   local: Boolean = true,
+   outputFormat: String = "json",
+   report: String = "total_purchase_by_store",
+   numMonths: Int = 12
+)

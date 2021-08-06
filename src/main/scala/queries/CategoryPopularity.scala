@@ -1,12 +1,11 @@
 package queries
 
 import org.apache.spark.sql.expressions.Window
-import org.apache.spark.sql.{SparkSession, functions}
 import org.apache.spark.sql.functions.{col, element_at, rank}
+import org.apache.spark.sql.{SparkSession, functions}
 
-import java.time.{Instant, ZoneId, ZoneOffset}
 import java.time.format.DateTimeFormatter
-import java.util.Date
+import java.time.{Instant, ZoneId, ZoneOffset}
 
 class CategoryPopularity(var startInstant: Instant, var spark: SparkSession) {
   val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME.withZone(ZoneId.from(ZoneOffset.UTC))
